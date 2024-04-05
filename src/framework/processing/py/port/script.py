@@ -1,187 +1,424 @@
-import port.api.props as props
-from port.api.commands import (CommandSystemDonate, CommandUIRender, CommandSystemExit)
+import logging
+import json
+import io
 
 import pandas as pd
-import zipfile
 
-def process(session_id: str):
-    platform = "Platform of interest"
+from port.api.commands import (CommandSystemDonate, CommandSystemExit, CommandUIRender)
+import port.api.props as props
+import port.facebook as facebook
 
-    # Start of the data donation flow
+
+LOG_STREAM = io.StringIO()
+
+logging.basicConfig(
+    stream=LOG_STREAM,
+    level=logging.INFO,
+    format="%(asctime)s --- %(name)s --- %(levelname)s --- %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S%z",
+)
+
+LOGGER = logging.getLogger("script")
+
+# Headers
+SUBMIT_FILE_HEADER = props.Translatable({
+    "en": "Select your Facebook file", 
+    "nl": "Selecteer uw Facebook bestand"
+})
+
+REVIEW_DATA_HEADER = props.Translatable({
+    "en": "Your Facebook data", 
+    "nl": "Uw Facebook gegevens"
+})
+
+RETRY_HEADER = props.Translatable({
+    "en": "Try again", 
+    "nl": "Probeer opnieuw"
+})
+
+
+def process(session_id):
+    LOGGER.info("Starting the donation flow")
+    yield donate_logs(f"{session_id}-tracking")
+
+    platform = ("Facebook", extract_facebook, facebook.validate)
+    platform_name, extraction_fun, validation_fun = platform
+
+    table_list = None
+    group_list = []
+
+    # Prompt file extraction loop
     while True:
-        # Ask the participant to submit a file
-        file_prompt = generate_file_prompt(platform, "application/zip, text/plain")
-        file_prompt_result = yield render_page(platform, file_prompt)
+        LOGGER.info("Prompt for file for %s", platform_name)
+        yield donate_logs(f"{session_id}-tracking")
 
-        # If the participant submitted a file: continue
-        if file_prompt_result.__type__ == 'PayloadString':
+        # Render the propmt file page
+        file_prompt = generate_file_prompt("application/zip")
+        file_result = yield render_page(platform_name, file_prompt)
 
-            # Validate the file the participant submitted
-            # In general this is wise to do 
-            is_data_valid = validate_the_participants_input(file_prompt_result.value)
+        if file_result.__type__ == "PayloadString":
+            validation = validation_fun(file_result.value)
 
-            # Happy flow:
-            # The file the participant submitted is valid
-            if is_data_valid == True:
+            # DDP is recognized: Status code zero
+            if validation.status_code.id == 0: 
+                LOGGER.info("Payload for %s", platform_name)
+                yield donate_logs(f"{session_id}-tracking")
 
-                # Extract the data you as a researcher are interested in, and put it in a pandas DataFrame
-                # Show this data to the participant in a table on screen
-                # The participant can now decide to donate
-                extracted_data = extract_the_data_you_are_interested_in(file_prompt_result.value)
-                consent_prompt = generate_consent_prompt(extracted_data)
-                consent_prompt_result = yield render_page(platform, consent_prompt)
-
-                # If the participant wants to donate the data gets donated
-                if consent_prompt_result.__type__ == "PayloadJSON":
-                    yield donate(f"{session_id}-{platform}", consent_prompt_result.value)
-
+                table_list = extraction_fun(file_result.value, validation)
+                group_list = facebook.groups_to_list(file_result.value)
                 break
 
-            # Sad flow:
-            # The data was not valid, ask the participant to retry
-            if is_data_valid == False:
-                retry_prompt = generate_retry_prompt(platform)
-                retry_prompt_result = yield render_page(platform, retry_prompt)
+            # DDP is not recognized: Different status code
+            if validation.status_code.id != 0: 
+                LOGGER.info("Not a valid %s zip; No payload; prompt retry_confirmation", platform_name)
+                yield donate_logs(f"{session_id}-tracking")
+                retry_result = yield render_page(platform_name, retry_confirmation(platform_name))
 
-                # The participant wants to retry: start from the beginning
-                if retry_prompt_result.__type__ == 'PayloadTrue':
+                if retry_result.__type__ == "PayloadTrue":
                     continue
-                # The participant does not want to retry or pressed skip
                 else:
+                    LOGGER.info("Skipped during retry %s", platform_name)
+                    yield donate_logs(f"{session_id}-tracking")
                     break
-
-        # The participant did not submit a file and pressed skip
         else:
+            LOGGER.info("Skipped %s", platform_name)
+            yield donate_logs(f"{session_id}-tracking")
             break
 
-    yield exit_port(0, "Success")
+    # Render data on screen
+    if table_list is not None:
+        LOGGER.info("Prompt consent; %s", platform_name)
+        yield donate_logs(f"{session_id}-tracking")
+
+        # Check if extract something got extracted
+        if len(table_list) == 0:
+            table_list.append(create_empty_table(platform_name))
+
+        consent_form_prompt = create_consent_form(table_list)
+        consent_result = yield render_page(platform_name, consent_form_prompt)
+
+        if consent_result.__type__ == "PayloadJSON":
+            LOGGER.info("Data donated; %s", platform_name)
+            yield donate_logs(f"{session_id}-tracking")
+            yield donate(platform_name, consent_result.value)
+
+            # If donation render question
+            if len(group_list) > 0:
+                render_questionnaire_results = yield render_checkbox_question(group_list)
+                if render_questionnaire_results.__type__ == "PayloadJSON":
+                    yield donate(f"{session_id}-questionnaire-donation", render_questionnaire_results.value)
+                else:
+                    LOGGER.info("Skipped questionnaire: %s", platform_name)
+                    yield donate_logs(f"tracking-{session_id}")
+
+
+        else:
+            LOGGER.info("Skipped ater reviewing consent: %s", platform_name)
+            yield donate_logs(f"{session_id}-tracking")
+
+    yield exit(0, "Success")
     yield render_end_page()
 
 
-def extract_the_data_you_are_interested_in(zip_file: str) -> pd.DataFrame:
+##################################################################
+
+def create_consent_form(table_list: list[props.PropsUIPromptConsentFormTable]) -> props.PropsUIPromptConsentForm:
     """
-    This function extracts the data the researcher is interested in
-
-    In this case we extract from the zipfile:
-    * The file names
-    * The compressed file size
-    * The file size
-
-    You could extract anything here
+    Assembles all donated data in consent form to be displayed
     """
-    names = []
-    out = pd.DataFrame()
-
-    try:
-        file = zipfile.ZipFile(zip_file)
-        data = []
-        for name in file.namelist():
-            names.append(name)
-            info = file.getinfo(name)
-            data.append((name, info.compress_size, info.file_size))
-
-        out = pd.DataFrame(data, columns=["File name", "Compressed file size", "File size"])
-
-    except Exception as e:
-        print(f"Something went wrong: {e}")
-
-    return out
+    return props.PropsUIPromptConsentForm(table_list, meta_tables=[])
 
 
-def validate_the_participants_input(zip_file: str) -> bool:
-    """
-    Check if the participant actually submitted a zipfile
-    Returns True if participant submitted a zipfile, otherwise False
+def donate_logs(key):
+    log_string = LOG_STREAM.getvalue()  # read the log stream
+    if log_string:
+        log_data = log_string.split("\n")
+    else:
+        log_data = ["no logs"]
 
-    In reality you need to do a lot more validation.
-    Some things you could check:
-    - Check if the the file(s) are the correct format (json, html, binary, etc.)
-    - If the files are in the correct language
-    """
+    return donate(key, json.dumps(log_data))
 
-    try:
-        with zipfile.ZipFile(zip_file) as zf:
-            return True
-    except zipfile.BadZipFile:
-        return False
+
+
+def donate_status(filename: str, message: str):
+    return donate(filename, json.dumps({"status": message}))
+
+
+
+##################################################################
+# Extraction function
+
+def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFormTable]:
+    tables_to_render = []
+
+    df = facebook.who_youve_followed_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "who_youve_followed"
+        table_title = props.Translatable({
+            "en": "Who you've followed", 
+            "nl": "Who you've followed", 
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_friends_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_friends"
+        table_title = props.Translatable(
+            {
+                "en": "Your friends", 
+                "nl": "Your friends", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.ads_interests_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "ads_interests"
+        table_title = props.Translatable(
+            {
+                "en": "Ads interests", 
+                "nl": "Ads interests", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.recently_viewed_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "recently_viewed"
+        table_title = props.Translatable(
+            {
+                "en": "Recently viewed", 
+                "nl": "Recently viewed", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.recently_visited_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "recently_visited"
+        table_title = props.Translatable(
+            {
+                "en": "Recently visited", 
+                "nl": "Recently visited", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.profile_information_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "profile_information"
+        table_title = props.Translatable(
+            {
+                "en": "Profile information", 
+                "nl": "Profile information", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.profile_update_history_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "profile_update_history"
+        table_title = props.Translatable(
+            {
+                "en": "Profile update history", 
+                "nl": "Profile update history", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.likes_and_reactions_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "likes_and_reactions"
+        table_title = props.Translatable(
+            {
+                "en": "likes and reactions", 
+                "nl": "likes and reactions", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_event_responses_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_event_responses"
+        table_title = props.Translatable(
+            {
+                "en": "Your event responses", 
+                "nl": "Your event responses", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.group_posts_and_comments_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "group_posts_and_comments"
+        table_title = props.Translatable(
+            {
+                "en": "Group posts and comments", 
+                "nl": "Group posts and comments", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_answers_to_membership_questions_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_answers_to_membership_questions"
+        table_title = props.Translatable(
+            {
+                "en": "Your answer to membership questions", 
+                "nl": "Your answer to membership questions", 
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_comments_in_groups_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_comments_in_groups"
+        table_title = props.Translatable(
+            {
+                "en": "Your comments in groups",
+                "nl": "Your comments in groups",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_group_membership_activity_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_group_membership_activity_to_df"
+        table_title = props.Translatable(
+            {
+                "en": "Your group membership activity",
+                "nl": "Your group membership activity",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.pages_and_profiles_you_follow_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "pages_and_profiles_you_follow"
+        table_title = props.Translatable(
+            {
+                "en": "Pages and profiles you follow",
+                "nl": "Pages and profiles you follow",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.pages_youve_liked_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "pages_youve_liked"
+        table_title = props.Translatable(
+            {
+                "en": "Pages you've liked",
+                "nl": "Pages you've liked",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+
+    df = facebook.your_saved_items_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_saved_items"
+        table_title = props.Translatable(
+            {
+                "en": "Your saved items",
+                "nl": "Your saved items",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+    return tables_to_render
+
 
 
 def render_end_page():
-    """
-    Renders a thank you page
-    """
     page = props.PropsUIPageEnd()
     return CommandUIRender(page)
 
 
-def render_page(platform: str, body):
-    """
-    Renders the UI components
-    """
-    header = props.PropsUIHeader(props.Translatable({"en": platform, "nl": platform }))
+def render_page(header_text, body):
+    platform = "Facebook"
+    header = props.PropsUIHeader(props.Translatable({"en": header_text, "nl": header_text}))
     footer = props.PropsUIFooter()
     page = props.PropsUIPageDonation(platform, header, body, footer)
     return CommandUIRender(page)
 
 
-def generate_retry_prompt(platform: str) -> props.PropsUIPromptConfirm:
-    text = props.Translatable({
-        "en": f"Unfortunately, we cannot process your {platform} file. Continue, if you are sure that you selected the right file. Try again to select a different file.",
-        "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen."
-    })
-    ok = props.Translatable({
-        "en": "Try again",
-        "nl": "Probeer opnieuw"
-    })
-    cancel = props.Translatable({
-        "en": "Continue",
-        "nl": "Verder"
-    })
+
+def retry_confirmation(platform):
+    text = props.Translatable(
+        {
+            "en": f"Unfortunately, we could not process your {platform} file. If you are sure that you selected the correct file, press Continue. To select a different file, press Try again.",
+            "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen."
+        }
+    )
+    ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
+    cancel = props.Translatable({"en": "Continue", "nl": "Verder"})
     return props.PropsUIPromptConfirm(text, ok, cancel)
 
 
-def generate_file_prompt(platform, extensions) -> props.PropsUIPromptFileInput:
-    description = props.Translatable({
-        "en": f"Please follow the download instructions and choose the file that you stored on your device. Click “Skip” at the right bottom, if you do not have a {platform} file. ",
-        "nl": f"Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat. Als u geen {platform} bestand heeft klik dan op “Overslaan” rechts onder."
-    })
-    return props.PropsUIPromptFileInput(description, extensions)
-
-
-def generate_consent_prompt(df: pd.DataFrame) -> props.PropsUIPromptConsentForm:
-    table_title = props.Translatable({
-        "en": "The contents of your zipfile contents",
-        "nl": "De inhoud van uw zip bestand"
-    })
-
-    description = props.Translatable({
-       "en": "Below you will find meta data about the contents of the zip file you submitted. Please review the data carefully and remove any information you do not wish to share. If you would like to share this data, click on the 'Yes, share for research' button at the bottom of this page. By sharing this data, you contribute to research <insert short explanation about your research here>.",
-       "nl": "Hieronder ziet u gegevens over de zip die u heeft ingediend. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die u niet wilt delen. Als u deze gegevens wilt delen, klik dan op de knop 'Ja, deel voor onderzoek' onderaan deze pagina. Door deze gegevens te delen draagt u bij aan onderzoek over <korte zin over het onderzoek>."
-    })
-
-    donate_question = props.Translatable({
-       "en": "Do you want to share this data for research?",
-       "nl": "Wilt u deze gegevens delen voor onderzoek?"
-    })
-
-    donate_button = props.Translatable({
-       "en": "Yes, share for research",
-       "nl": "Ja, deel voor onderzoek"
-    })
-
-    table = props.PropsUIPromptConsentFormTable("zip_contents", table_title, df)
-    return props.PropsUIPromptConsentForm(
-       [table], 
-       [],
-       description = description,
-       donate_question = donate_question,
-       donate_button = donate_button
+def generate_file_prompt(extensions):
+    description = props.Translatable(
+        {
+            "en": f"Please follow the download instructions and choose the file that you stored on your device.",
+            "nl": f"Volg de download instructies en kies het bestand dat u opgeslagen heeft op uw apparaat."
+        }
     )
+    return props.PropsUIPromptFileInput(description, extensions)
 
 
 def donate(key, json_string):
     return CommandSystemDonate(key, json_string)
 
 
-def exit_port(code, info):
+def exit(code, info):
     return CommandSystemExit(code, info)
+
+
+def create_empty_table(platform_name: str) -> props.PropsUIPromptConsentFormTable:
+    """
+    Show something in case no data was extracted
+    """
+    title = props.Translatable({
+       "en": "Er ging niks mis, maar we konden niks vinden",
+       "nl": "Er ging niks mis, maar we konden niks vinden"
+    })
+    df = pd.DataFrame(["No data found"], columns=["No data found"])
+    table = props.PropsUIPromptConsentFormTable(f"{platform_name}_no_data_found", title, df)
+    return table
+ 
+
+############################################
+
+GROUP_QUESTION = props.Translatable({"en": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", "nl": "blabla"})
+
+def rate_groups_question(group_list: list):
+
+    choices = [props.Translatable({"en": f"{item}", "nl": f"{item}"}) for item in group_list]
+    questions = [
+        props.PropsUIQuestionMultipleChoiceCheckbox(question=GROUP_QUESTION, id=1, choices=choices),
+    ]
+
+    description = props.Translatable({"en": "Below you can find a couple of questions about the data donation process", "nl": "Hieronder vind u een paar vragen over het data donatie process"})
+    header = props.PropsUIHeader(props.Translatable({"en": "Questionnaire", "nl": "Vragenlijst"}))
+    body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
+    footer = props.PropsUIFooter()
+
+    page = props.PropsUIPageDonation("ASD", header, body, footer)
+    return CommandUIRender(page)
+
+
