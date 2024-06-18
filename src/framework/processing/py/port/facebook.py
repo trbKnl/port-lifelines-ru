@@ -637,6 +637,7 @@ def groups_to_list(facebook_zip: str) -> list[str]:
             out.append(
                 helpers.fix_latin1_string(helpers.find_item(denested_dict, "name"))
             )
+            out = list(set(out))
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
