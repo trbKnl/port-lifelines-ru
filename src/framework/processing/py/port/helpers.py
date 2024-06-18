@@ -113,7 +113,6 @@ def find_items(d: dict[Any, Any],  key_to_match: str) -> list:
     """
     out = []
     pattern = r"{}".format(f"^.*{key_to_match}.*$")
-    depth = math.inf
 
     try:
         for k, v in d.items():

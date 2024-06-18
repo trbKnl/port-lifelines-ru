@@ -46,6 +46,7 @@ def process(session_id):
 
     table_list = None
     group_list = []
+    selected_groups = []
 
     # Prompt file extraction loop
     while True:
@@ -102,15 +103,24 @@ def process(session_id):
             yield donate_logs(f"{session_id}-tracking")
             yield donate(platform_name, consent_result.value)
 
-            # If donation render question
+            # If donation render checkbox list
             if len(group_list) > 0:
                 render_questionnaire_results = yield render_checkbox_question(group_list)
                 if render_questionnaire_results.__type__ == "PayloadJSON":
-                    yield donate(f"{session_id}-questionnaire-donation", render_questionnaire_results.value)
+                    yield donate(f"{session_id}-checkbox-donation", render_questionnaire_results.value)
+                    selected_groups = parse_questionnaire_json(render_questionnaire_results.value)
+
                 else:
                     LOGGER.info("Skipped questionnaire: %s", platform_name)
                     yield donate_logs(f"tracking-{session_id}")
 
+            if len(selected_groups) > 0:
+                render_questionnaire_results = yield render_multiple_choice_questions(selected_groups)
+                if render_questionnaire_results.__type__ == "PayloadJSON":
+                    yield donate(f"{session_id}-multiple-choice", render_questionnaire_results.value)
+                else:
+                    LOGGER.info("Skipped questionnaire: %s", platform_name)
+                    yield donate_logs(f"tracking-{session_id}")
 
         else:
             LOGGER.info("Skipped ater reviewing consent: %s", platform_name)
@@ -121,6 +131,17 @@ def process(session_id):
 
 
 ##################################################################
+
+def parse_questionnaire_json(json_str: str) -> list["str"]:
+    out = []
+    try:
+        out = json.loads(json_str).get("1", [])
+    except Exception as e:
+        LOGGER.error(e)
+
+    return out
+
+
 
 def create_consent_form(table_list: list[props.PropsUIPromptConsentFormTable]) -> props.PropsUIPromptConsentForm:
     """
@@ -137,7 +158,6 @@ def donate_logs(key):
         log_data = ["no logs"]
 
     return donate(key, json.dumps(log_data))
-
 
 
 def donate_status(filename: str, message: str):
@@ -229,18 +249,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
             {
                 "en": "Profile update history", 
                 "nl": "Profile update history", 
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
-    df = facebook.likes_and_reactions_to_df(facebook_zip)
-    if not df.empty:
-        table_id = "likes_and_reactions"
-        table_title = props.Translatable(
-            {
-                "en": "likes and reactions", 
-                "nl": "likes and reactions", 
              })
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
@@ -341,6 +349,61 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
+    df = facebook.your_search_history_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_search_history"
+        table_title = props.Translatable(
+            {
+                "en": "Your search history",
+                "nl": "Your search history",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+    df = facebook.comments_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "comments"
+        table_title = props.Translatable(
+            {
+                "en": "Your comments",
+                "nl": "Your comments",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+    df = facebook.likes_and_reactions_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "likes_and_reactions"
+        table_title = props.Translatable(
+            {
+                "en": "Your likes and reactions",
+                "nl": "Your likes and reactions",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+    df = facebook.your_comment_active_days_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_comment_active_days"
+        table_title = props.Translatable(
+            {
+                "en": "Your comment active days",
+                "nl": "Your comment active days",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
+    df = facebook.your_pages_to_df(facebook_zip)
+    if not df.empty:
+        table_id = "your_pages"
+        table_title = props.Translatable(
+            {
+                "en": "Your pages",
+                "nl": "Your pages",
+             })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        tables_to_render.append(table)
+
     return tables_to_render
 
 
@@ -404,21 +467,100 @@ def create_empty_table(platform_name: str) -> props.PropsUIPromptConsentFormTabl
 
 ############################################
 
-GROUP_QUESTION = props.Translatable({"en": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", "nl": "blabla"})
+GROUP_QUESTION = props.Translatable(
+    {
+        "en": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", 
+        "nl": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", 
+     })
 
-def rate_groups_question(group_list: list):
+
+def render_checkbox_question(group_list: list):
 
     choices = [props.Translatable({"en": f"{item}", "nl": f"{item}"}) for item in group_list]
     questions = [
         props.PropsUIQuestionMultipleChoiceCheckbox(question=GROUP_QUESTION, id=1, choices=choices),
     ]
 
-    description = props.Translatable({"en": "Below you can find a couple of questions about the data donation process", "nl": "Hieronder vind u een paar vragen over het data donatie process"})
-    header = props.PropsUIHeader(props.Translatable({"en": "Questionnaire", "nl": "Vragenlijst"}))
+    description = props.Translatable(
+        {
+            "en": "CREATE DESCRIPTION HERE",
+            "nl": "CREATE DESCRIPTION HERE",
+         })
+    header = props.PropsUIHeader(props.Translatable({"en": "PICK A HEADER Questionnaire", "nl": "PICK A HEADER Vragenlijst"}))
     body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
     footer = props.PropsUIFooter()
 
-    page = props.PropsUIPageDonation("ASD", header, body, footer)
+    page = props.PropsUIPageDonation("groups", header, body, footer)
     return CommandUIRender(page)
+
+
+
+def render_multiple_choice_questions(group_names: list[str]):
+
+    choices = [
+        props.Translatable(
+            {
+                "en": "1. lorem ipsum dolor", 
+                "nl": "1. lorem ipsum dolor", 
+            }
+        ),
+        props.Translatable(
+            {
+                "en": "2. lorem ipsum dolor", 
+                "nl": "2. lorem ipsum dolor", 
+            }
+        ),
+        props.Translatable(
+            {
+                "en": "3. lorem ipsum dolor", 
+                "nl": "3. lorem ipsum dolor", 
+            }
+        ),
+        props.Translatable(
+            {
+                "en": "4. lorem ipsum dolor", 
+                "nl": "4. lorem ipsum dolor", 
+            }
+        ),
+        props.Translatable(
+            {
+                "en": "5. lorem ipsum dolor", 
+                "nl": "5. lorem ipsum dolor", 
+            }
+        ),
+    ] 
+
+    questions = []
+    for i, group_name in enumerate(group_names):
+        question = props.Translatable(
+            {
+                "en": f"blablabla QUESTION ABOUT GROUP: {group_name}",
+                "nl": f"blablabla QUESTION ABOUT GROUP: {group_name}",
+            }
+        )
+        questions.append(
+            props.PropsUIQuestionMultipleChoice(question=question, id=i, choices=choices),
+        )
+
+    description = props.Translatable(
+        {
+            "en": "CREATE DESCRIPTION HERE",
+            "nl": "CREATE DESCRIPTION HERE",
+         })
+    header = props.PropsUIHeader(props.Translatable({"en": "PICK A HEADER Questionnaire", "nl": "PICK A HEADER Vragenlijst"}))
+    body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
+    footer = props.PropsUIFooter()
+
+    page = props.PropsUIPageDonation("groups", header, body, footer)
+    return CommandUIRender(page)
+
+
+
+
+
+
+
+
+
 
 

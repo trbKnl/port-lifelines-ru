@@ -257,30 +257,6 @@ def profile_update_history_to_df(facebook_zip: str) -> pd.DataFrame:
     return out
 
 
-
-def likes_and_reactions_to_df(facebook_zip: str) -> pd.DataFrame:
-    b = unzipddp.extract_file_from_zip(facebook_zip, "likes_and_reactions_1.json")
-    d = unzipddp.read_json_from_bytes(b)
-
-    out = pd.DataFrame()
-    datapoints = []
-
-    try:
-        for item in d:
-            datapoints.append((
-                helpers.fix_latin1_string(item.get("title", "")),
-                item["data"][0].get("reaction", {}).get("reaction", ""),
-                helpers.epoch_to_iso(item.get("timestamp", ""))
-            ))
-        out = pd.DataFrame(datapoints, columns=["Action", "Reaction", "Date"])
-
-    except Exception as e:
-        logger.error("Exception caught: %s", e)
-
-    return out
-
-
-
 def your_event_responses_to_df(facebook_zip: str) -> pd.DataFrame:
 
     b = unzipddp.extract_file_from_zip(facebook_zip, "your_event_responses.json")
@@ -374,7 +350,6 @@ def your_comments_in_groups_to_df(facebook_zip: str) -> pd.DataFrame:
             datapoints.append((
                 helpers.fix_latin1_string(helpers.find_item(denested_dict, "title")),
                 helpers.fix_latin1_string(helpers.find_item(denested_dict, "comment-comment")),
-                helpers.fix_latin1_string(helpers.find_item(denested_dict, "author")),
                 helpers.fix_latin1_string(helpers.find_item(denested_dict, "group")),
                 helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
             ))
@@ -399,12 +374,16 @@ def your_group_membership_activity_to_df(facebook_zip: str) -> pd.DataFrame:
     try:
         items = d["groups_joined_v2"]  # pyright: ignore
         for item in items:
+            denested_dict = helpers.dict_denester(item)
+
             datapoints.append((
-                helpers.fix_latin1_string(item.get("title", "")),
-                helpers.epoch_to_iso(item.get("timestamp", ""))
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "title")),
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "name")),
+                helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Title", "Timestamp"])
+
+        out = pd.DataFrame(datapoints, columns=["Title", "Group name", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -482,6 +461,146 @@ def your_saved_items_to_df(facebook_zip: str) -> pd.DataFrame:
 
     return out
 
+
+def your_search_history_to_df(facebook_zip: str) -> pd.DataFrame:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "your_search_history.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    out = pd.DataFrame()
+    datapoints = []
+
+    try:
+        items = d["searches_v2"]  # pyright: ignore
+        for item in items:
+            denested_dict = helpers.dict_denester(item)
+
+            datapoints.append((
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "title")),
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "text")),
+                helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
+            ))
+
+        out = pd.DataFrame(datapoints, columns=["Title", "Text", "Timestamp"])
+        
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return out
+
+
+def comments_to_df(facebook_zip: str) -> pd.DataFrame:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "comments.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    out = pd.DataFrame()
+    datapoints = []
+
+    try:
+        items = d["comments_v2"]  # pyright: ignore
+        for item in items:
+            denested_dict = helpers.dict_denester(item)
+
+            datapoints.append((
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "title")),
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "comment-comment")),
+                helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
+            ))
+
+        out = pd.DataFrame(datapoints, columns=["Title", "Comment", "Timestamp"])
+        
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return out
+
+
+
+def likes_and_reactions_to_df(instagram_zip: str) -> pd.DataFrame:
+    """
+    likes_and_reactions_x
+    """
+
+    out = pd.DataFrame()
+    datapoints = []
+    i = 1
+
+    while True:
+        b = unzipddp.extract_file_from_zip(instagram_zip, f"likes_and_reactions_{i}.json")
+        d = unzipddp.read_json_from_bytes(b)
+
+        if not d:
+            break
+
+        try:
+            for item in d:
+                denested_dict = helpers.dict_denester(item)
+
+                datapoints.append((
+                    helpers.fix_latin1_string(helpers.find_item(denested_dict, "title")),
+                    helpers.fix_latin1_string(helpers.find_item(denested_dict, "reaction-reaction")),
+                    helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
+                ))
+
+            i += 1
+
+        except Exception as e:
+            logger.error("Exception caught: %s", e)
+            return pd.DataFrame()
+
+    out = pd.DataFrame(datapoints, columns=["Title", "Reaction", "Timestamp"])
+
+    return out
+
+
+
+def your_comment_active_days_to_df(facebook_zip: str) -> pd.DataFrame:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "your_comment_active_days.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    out = pd.DataFrame()
+    datapoints = []
+
+    try:
+        items = d["label_values"]  # pyright: ignore
+        for item in items:
+            datapoints.append((
+                item.get("label", ""),
+                item.get("value", ""),
+            ))
+
+        out = pd.DataFrame(datapoints, columns=["Label", "Value"])
+        
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return out
+
+
+
+def your_pages_to_df(facebook_zip: str) -> pd.DataFrame:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "your_pages.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    out = pd.DataFrame()
+    datapoints = []
+
+    try:
+        items = d["pages_v2"]  # pyright: ignore
+        for item in items:
+            datapoints.append((
+                helpers.fix_latin1_string(item.get("name", "")),
+                item.get("url", ""),
+                helpers.epoch_to_iso(item.get("timestamp", "")),
+            ))
+
+        out = pd.DataFrame(datapoints, columns=["Name", "Url", "Timestamp"])
+        
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return out
+
+
 #################################################################################################
 #################################################################################################
 #################################################################################################
@@ -502,21 +621,23 @@ def your_saved_items_to_df(facebook_zip: str) -> pd.DataFrame:
 
 
 # NOTE: WHICH FILE DO I NEED TO USE TO BASE THE GROUP EXTRACTION ON
-def groups_to_list(facebook_zip: str) -> list:
+# ANSWER: your_group_membership_activity.json
 
-    b = unzipddp.extract_file_from_zip(facebook_zip, "group_interactions.json")
+def groups_to_list(facebook_zip: str) -> list[str]:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "your_group_membership_activity.json")
     d = unzipddp.read_json_from_bytes(b)
 
     out = []
 
     try:
-        items = d["group_interactions_v2"][0]["entries"]  # pyright: ignore
+        items = d["groups_joined_v2"]  # pyright: ignore
         for item in items:
-            out.append(
-                item.get("data", {}).get("name", None)
-            )
+            denested_dict = helpers.dict_denester(item)
 
-        out = [item for item in out if isinstance(item, str)]
+            out.append(
+                helpers.fix_latin1_string(helpers.find_item(denested_dict, "name"))
+            )
+        
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
