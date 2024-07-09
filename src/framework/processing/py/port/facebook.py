@@ -106,12 +106,9 @@ def your_friends_to_df(facebook_zip: str) -> pd.DataFrame:
 
     try:
         items = d["friends_v2"]  # pyright: ignore
-        for item in items:
-            datapoints.append((
-                helpers.fix_latin1_string(item.get("name", "")),
-                helpers.epoch_to_iso(item.get("timestamp", {}))
-            ))
-        out = pd.DataFrame(datapoints, columns=["Name", "Timestamp"])
+        datapoints.append((len(items)))
+
+        out = pd.DataFrame(datapoints, columns=["Aantal vrienden op facebook"])
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -223,11 +220,12 @@ def profile_information_to_df(facebook_zip: str) -> pd.DataFrame:
     try:
         items = d["profile_v2"]  # pyright: ignore
         datapoints.append((
-            items["gender"]["gender_option"],
-            items["gender"]["pronoun"],
+            items.get("gender", {}).get("gender_option", ""),
+            items.get("gender", {}).get("pronoun", ""),
+            ", ".join(items.get("gender", {}).get("custom_genders", []))
         ))
 
-        out = pd.DataFrame(datapoints, columns=["Gender", "Pronoun"])
+        out = pd.DataFrame(datapoints, columns=["Gender", "Pronoun", "Custom genders"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -601,28 +599,8 @@ def your_pages_to_df(facebook_zip: str) -> pd.DataFrame:
     return out
 
 
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-#################################################################################################
-# OLD CODE
-
-
 # NOTE: WHICH FILE DO I NEED TO USE TO BASE THE GROUP EXTRACTION ON
 # ANSWER: your_group_membership_activity.json
-
 def groups_to_list(facebook_zip: str) -> list[str]:
     b = unzipddp.extract_file_from_zip(facebook_zip, "your_group_membership_activity.json")
     d = unzipddp.read_json_from_bytes(b)
@@ -643,4 +621,43 @@ def groups_to_list(facebook_zip: str) -> list[str]:
         logger.error("Exception caught: %s", e)
 
     return out
+
+#####################################################################
+# replace occurance in df
+
+# Function to extract username
+def get_username(facebook_zip: str) -> None | str:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "profile_information.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    username = None
+    try:
+        username = helpers.fix_latin1_string(d["profile_v2"]["name"]["full_name"])  # pyright: ignore
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return username
+
+
+def regex_substitution(value, pattern, replacement):
+    if isinstance(value, str):  # Only apply substitution to strings
+        try:
+            return re.sub(pattern, replacement, value)
+        except Exception:
+            return value
+    return value
+
+
+def replace_in_df(df: pd.DataFrame, value: str | None, replacement: str) -> pd.DataFrame:
+    """
+    Usage: 
+    username = get_username(/path_to_zip)
+    replace_in_df(df, username, "You")
+    """
+
+    if value != None:
+        pattern = rf"{value}"
+        df = df.applymap(lambda x: regex_substitution(x, pattern, replacement))
+
+    return df
 

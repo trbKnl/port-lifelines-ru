@@ -171,7 +171,10 @@ def donate_status(filename: str, message: str):
 def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFormTable]:
     tables_to_render = []
 
+    username = facebook.get_username(facebook_zip)
+    replacement = "<Jouw gebruikersnaam>"
     df = facebook.who_youve_followed_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "who_youve_followed"
         table_title = props.Translatable({
@@ -183,6 +186,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_friends_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_friends"
         table_title = props.Translatable(
@@ -195,6 +199,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.ads_interests_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "ads_interests"
         table_title = props.Translatable(
@@ -206,19 +211,8 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
 
-    df = facebook.recently_viewed_to_df(facebook_zip)
-    if not df.empty:
-        table_id = "recently_viewed"
-        table_title = props.Translatable(
-            {
-                "en": "Recently viewed", 
-                "nl": "Recently viewed", 
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
     df = facebook.recently_visited_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "recently_visited"
         table_title = props.Translatable(
@@ -231,6 +225,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.profile_information_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "profile_information"
         table_title = props.Translatable(
@@ -243,6 +238,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.profile_update_history_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "profile_update_history"
         table_title = props.Translatable(
@@ -255,6 +251,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_event_responses_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_event_responses"
         table_title = props.Translatable(
@@ -267,6 +264,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.group_posts_and_comments_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "group_posts_and_comments"
         table_title = props.Translatable(
@@ -278,19 +276,8 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
 
-    df = facebook.your_answers_to_membership_questions_to_df(facebook_zip)
-    if not df.empty:
-        table_id = "your_answers_to_membership_questions"
-        table_title = props.Translatable(
-            {
-                "en": "Your answer to membership questions", 
-                "nl": "Your answer to membership questions", 
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
     df = facebook.your_comments_in_groups_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_comments_in_groups"
         table_title = props.Translatable(
@@ -303,6 +290,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_group_membership_activity_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_group_membership_activity_to_df"
         table_title = props.Translatable(
@@ -315,6 +303,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.pages_and_profiles_you_follow_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "pages_and_profiles_you_follow"
         table_title = props.Translatable(
@@ -327,6 +316,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.pages_youve_liked_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "pages_youve_liked"
         table_title = props.Translatable(
@@ -339,6 +329,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_saved_items_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_saved_items"
         table_title = props.Translatable(
@@ -349,18 +340,9 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
-    df = facebook.your_search_history_to_df(facebook_zip)
-    if not df.empty:
-        table_id = "your_search_history"
-        table_title = props.Translatable(
-            {
-                "en": "Your search history",
-                "nl": "Your search history",
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
 
     df = facebook.comments_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "comments"
         table_title = props.Translatable(
@@ -372,6 +354,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
     df = facebook.likes_and_reactions_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "likes_and_reactions"
         table_title = props.Translatable(
@@ -383,6 +366,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
     df = facebook.your_comment_active_days_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_comment_active_days"
         table_title = props.Translatable(
@@ -394,6 +378,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
     df = facebook.your_pages_to_df(facebook_zip)
+    df = facebook.replace_in_df(df, username, replacement)
     if not df.empty:
         table_id = "your_pages"
         table_title = props.Translatable(
