@@ -173,8 +173,21 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     username = facebook.get_username(facebook_zip)
     replacement = "<Jouw gebruikersnaam>"
+
+    email_replacement = "<Jouw emailadres>"
+    phone_replacement = "<Jouw telefoonnummer>"
+
+    emails = facebook.get_emails(facebook_zip)
+    numbers = facebook.get_phone_numbers(facebook_zip)
+
     df = facebook.who_youve_followed_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "who_youve_followed"
         table_title = props.Translatable({
@@ -187,6 +200,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.your_friends_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_friends"
         table_title = props.Translatable(
@@ -200,6 +218,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.ads_interests_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "ads_interests"
         table_title = props.Translatable(
@@ -213,6 +236,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.recently_visited_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "recently_visited"
         table_title = props.Translatable(
@@ -226,45 +254,49 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.profile_information_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "profile_information"
         table_title = props.Translatable(
             {
                 "en": "Profile information", 
                 "nl": "Profile information", 
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
-    df = facebook.profile_update_history_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    if not df.empty:
-        table_id = "profile_update_history"
-        table_title = props.Translatable(
-            {
-                "en": "Profile update history", 
-                "nl": "Profile update history", 
-             })
+             }
+        )
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
 
     df = facebook.your_event_responses_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_event_responses"
         table_title = props.Translatable(
             {
                 "en": "Your event responses", 
                 "nl": "Your event responses", 
-             })
+             }
+        )
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
 
     df = facebook.group_posts_and_comments_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "group_posts_and_comments"
         table_title = props.Translatable(
@@ -278,6 +310,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.your_comments_in_groups_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_comments_in_groups"
         table_title = props.Translatable(
@@ -291,6 +328,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.your_group_membership_activity_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_group_membership_activity_to_df"
         table_title = props.Translatable(
@@ -302,21 +344,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
 
-    df = facebook.pages_and_profiles_you_follow_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    if not df.empty:
-        table_id = "pages_and_profiles_you_follow"
-        table_title = props.Translatable(
-            {
-                "en": "Pages and profiles you follow",
-                "nl": "Pages and profiles you follow",
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
     df = facebook.pages_youve_liked_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "pages_youve_liked"
         table_title = props.Translatable(
@@ -327,22 +361,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
-
-    df = facebook.your_saved_items_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    if not df.empty:
-        table_id = "your_saved_items"
-        table_title = props.Translatable(
-            {
-                "en": "Your saved items",
-                "nl": "Your saved items",
-             })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
-        tables_to_render.append(table)
-
-
     df = facebook.comments_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "comments"
         table_title = props.Translatable(
@@ -355,6 +380,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.likes_and_reactions_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "likes_and_reactions"
         table_title = props.Translatable(
@@ -367,6 +397,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.your_comment_active_days_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_comment_active_days"
         table_title = props.Translatable(
@@ -379,6 +414,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
     df = facebook.your_pages_to_df(facebook_zip)
     df = facebook.replace_in_df(df, username, replacement)
+    for n in numbers:
+        df = facebook.replace_in_df(df, n, phone_replacement)
+    for e in emails:
+        df = facebook.replace_in_df(df, e, email_replacement)
+
     if not df.empty:
         table_id = "your_pages"
         table_title = props.Translatable(
@@ -454,8 +494,8 @@ def create_empty_table(platform_name: str) -> props.PropsUIPromptConsentFormTabl
 
 GROUP_QUESTION = props.Translatable(
     {
-        "en": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", 
-        "nl": "Check all groups you identify yourself with, CREATE A GOOD QUESTION HERE", 
+        "nl": "Welke Facebook-groepen vind je het belangrijkst? Selecteer maximaal drie:", 
+        "en": "Welke Facebook-groepen vind je het belangrijkst? Selecteer maximaal drie:", 
      })
 
 
@@ -468,10 +508,15 @@ def render_checkbox_question(group_list: list):
 
     description = props.Translatable(
         {
-            "en": "CREATE DESCRIPTION HERE",
-            "nl": "CREATE DESCRIPTION HERE",
+            "nl": "We willen weten welke Facebook-groepen voor jou belangrijk zijn. Selecteer maximaal drie groepen die voor jou het meest betekenen. 'Belangrijk' betekent dat deze groepen je emotionele steun, een gevoel van saamhorigheid, waardevolle informatie of andere hulp bieden.",
+            "en": "We willen weten welke Facebook-groepen voor jou belangrijk zijn. Selecteer maximaal drie groepen die voor jou het meest betekenen. 'Belangrijk' betekent dat deze groepen je emotionele steun, een gevoel van saamhorigheid, waardevolle informatie of andere hulp bieden.",
          })
-    header = props.PropsUIHeader(props.Translatable({"en": "PICK A HEADER Questionnaire", "nl": "PICK A HEADER Vragenlijst"}))
+    header = props.PropsUIHeader(props.Translatable(
+        {
+            "nl": "Belangrijke Facebook Groepen",
+            "en": "Belangrijke Facebook Groepen"
+         })
+    )
     body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
     footer = props.PropsUIFooter()
 
@@ -485,32 +530,32 @@ def render_multiple_choice_questions(group_names: list[str]):
     choices = [
         props.Translatable(
             {
-                "en": "1. lorem ipsum dolor", 
-                "nl": "1. lorem ipsum dolor", 
+                "en": "1. Helemaal mee oneens", 
+                "nl": "1. Helemaal mee oneens", 
             }
         ),
         props.Translatable(
             {
-                "en": "2. lorem ipsum dolor", 
-                "nl": "2. lorem ipsum dolor", 
+                "en": "2. Mee oneens", 
+                "nl": "2. Mee oneens", 
             }
         ),
         props.Translatable(
             {
-                "en": "3. lorem ipsum dolor", 
-                "nl": "3. lorem ipsum dolor", 
+                "en": "3. Neutraal", 
+                "nl": "3. Neutraal", 
             }
         ),
         props.Translatable(
             {
-                "en": "4. lorem ipsum dolor", 
-                "nl": "4. lorem ipsum dolor", 
+                "en": "4. Mee eens", 
+                "nl": "4. Mee eens", 
             }
         ),
         props.Translatable(
             {
-                "en": "5. lorem ipsum dolor", 
-                "nl": "5. lorem ipsum dolor", 
+                "en": "5. Helemaal mee eens", 
+                "nl": "5. Helemaal mee eens", 
             }
         ),
     ] 
@@ -519,33 +564,33 @@ def render_multiple_choice_questions(group_names: list[str]):
     for i, group_name in enumerate(group_names):
         question = props.Translatable(
             {
-                "en": f"blablabla QUESTION ABOUT GROUP: {group_name}",
-                "nl": f"blablabla QUESTION ABOUT GROUP: {group_name}",
+                "en": f"Ik voel me echt deel van de groep ({group_name})",
+                "nl": f"Ik voel me echt deel van de groep ({group_name})",
             }
         )
         questions.append(
-            props.PropsUIQuestionMultipleChoice(question=question, id=i, choices=choices),
+            props.PropsUIQuestionMultipleChoice(question=question, id=f"{i}_part_group_{group_name}", choices=choices),
+        )
+        question = props.Translatable(
+            {
+                "en": f"De groep ({group_name}) biedt mij de ondersteuning die ik nodig heb.",
+                "nl": f"De groep ({group_name}) biedt mij de ondersteuning die ik nodig heb.",
+            }
+        )
+        questions.append(
+            props.PropsUIQuestionMultipleChoice(question=question, id=f"{i}_support_{group_name}", choices=choices),
         )
 
     description = props.Translatable(
         {
-            "en": "CREATE DESCRIPTION HERE",
-            "nl": "CREATE DESCRIPTION HERE",
+            "nl": "In de volgende sectie vragen we je om aan te geven hoezeer je het eens bent met een aantal stellingen over de groepen die je hebt geselecteerd. Dit helpt ons te begrijpen hoe deze groepen je ondersteunen en in hoeverre je je ermee verbonden voelt. Gebruik de onderstaande schaal om je antwoorden te geven:",
+            "en": "In de volgende sectie vragen we je om aan te geven hoezeer je het eens bent met een aantal stellingen over de groepen die je hebt geselecteerd. Dit helpt ons te begrijpen hoe deze groepen je ondersteunen en in hoeverre je je ermee verbonden voelt. Gebruik de onderstaande schaal om je antwoorden te geven:",
          })
-    header = props.PropsUIHeader(props.Translatable({"en": "PICK A HEADER Questionnaire", "nl": "PICK A HEADER Vragenlijst"}))
+    header = props.PropsUIHeader(props.Translatable({"en": "Belangrijke Facebook Groepen", "nl": "Belangrijke Facebook Groepen"}))
     body = props.PropsUIPromptQuestionnaire(questions=questions, description=description)
     footer = props.PropsUIFooter()
 
     page = props.PropsUIPageDonation("groups", header, body, footer)
     return CommandUIRender(page)
-
-
-
-
-
-
-
-
-
 
 

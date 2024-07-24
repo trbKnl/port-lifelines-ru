@@ -639,6 +639,34 @@ def get_username(facebook_zip: str) -> None | str:
     return username
 
 
+# Function to extract emails
+def get_emails(facebook_zip: str) ->  list[str]:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "profile_information.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    emails = []
+    try:
+        emails = d["profile_v2"]["emails"].get("emails", []) #pyright: ignore
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return emails
+
+
+def get_phone_numbers(facebook_zip: str) ->  list[str]:
+    b = unzipddp.extract_file_from_zip(facebook_zip, "profile_information.json")
+    d = unzipddp.read_json_from_bytes(b)
+
+    out = []
+    try:
+        l = d["profile_v2"].get("phone_numbers", []) #pyright: ignore
+        for d in l:
+            out.append(d["phone_number"])
+    except Exception as e:
+        logger.error("Exception caught: %s", e)
+
+    return out 
+
 def regex_substitution(value, pattern, replacement):
     if isinstance(value, str):  # Only apply substitution to strings
         try:
