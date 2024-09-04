@@ -192,9 +192,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_id = "who_youve_followed"
         table_title = props.Translatable({
             "en": "Who you've followed", 
-            "nl": "Who you've followed", 
+            "nl": "Wie je volgt", 
         })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Hier is een lijst van de mensen en pagina's die je hebt gekozen om te volgen op Facebook.", 
+            "en": "Here is a list of the people and pages you have chosen to follow on Facebook.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -210,9 +214,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your friends", 
-                "nl": "Your friends", 
+                "nl": "Jouw vrienden", 
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "De mensen die je hebt toegevoegd als vrienden op Facebook.", 
+            "en": "The people you have added as friends on Facebook.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -228,7 +236,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Ads interests", 
-                "nl": "Ads interests", 
+                "nl": "Interesse in advertenties", 
              })
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
@@ -246,9 +254,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Recently visited", 
-                "nl": "Recently visited", 
+                "nl": "Onlangs bezocht", 
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Items, pagina's of inhoud die je onlangs hebt bekeken op Facebook.", 
+            "en": "Items, pages, or content you have recently viewed on Facebook.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -264,10 +276,14 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Profile information", 
-                "nl": "Profile information", 
+                "nl": "Profielinformatie", 
              }
         )
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Hierin zit informatie over je gender en voornaamwoorden (pronouns)", 
+            "en": "This contains information about your gender and pronouns.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -283,10 +299,14 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your event responses", 
-                "nl": "Your event responses", 
+                "nl": "Je reacties op evenementen", 
              }
         )
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Jouw reacties op evenementenuitnodigingen op Facebook.", 
+            "en": "Your responses to event invitations on Facebook.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -302,9 +322,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Group posts and comments", 
-                "nl": "Group posts and comments", 
+                "nl": "Groepsberichten en reacties", 
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Berichten en reacties die je hebt geplaatst in Facebook-groepen", 
+            "en": "Posts and comments you have made in Facebook groups."
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -320,9 +344,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your comments in groups",
-                "nl": "Your comments in groups",
+                "nl": "Jouw reacties in groepen",
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Reacties die je hebt geplaatst op Facebook-berichten, pagina's en groepen.", 
+            "en": "Comments you have posted on Facebook posts, pages, and groups.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -338,9 +366,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your group membership activity",
-                "nl": "Your group membership activity",
+                "nl": "Je activiteit in groepen",
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Jouw activiteit binnen Facebook-groepen, zoals berichten en interacties.", 
+            "en": "Your activity within Facebook groups, such as posts and interactions.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
 
@@ -356,7 +388,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Pages you've liked",
-                "nl": "Pages you've liked",
+                "nl": "Pagina's die jij leuk vind",
              })
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
@@ -373,9 +405,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your comments",
-                "nl": "Your comments",
+                "nl": "Jouw reacties",
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Reacties die je hebt geplaatst op Facebook-berichten, pagina's en groepen.", 
+            "en": "Comments you have posted on Facebook posts, pages, and groups.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
     df = facebook.likes_and_reactions_to_df(facebook_zip)
@@ -390,9 +426,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your likes and reactions",
-                "nl": "Your likes and reactions",
+                "nl": "Je likes en reacties",
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Een overzicht van likes en reacties die je hebt geplaatst op Facebook", 
+            "en": "An overview of likes and comments you have made on Facebook.",
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
     df = facebook.your_comment_active_days_to_df(facebook_zip)
@@ -407,7 +447,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your comment active days",
-                "nl": "Your comment active days",
+                "nl": "Hoe actief je bent op Facebook",
              })
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
@@ -424,9 +464,13 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table_title = props.Translatable(
             {
                 "en": "Your pages",
-                "nl": "Your pages",
+                "nl": "Jouw pagina's",
              })
-        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
+        description = props.Translatable({
+            "nl": "Pagina's die je hebt gemaakt of beheert op Facebook.", 
+            "en": "Pages you have created or manage on Facebook."
+        })
+        table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
     return tables_to_render
