@@ -88,7 +88,9 @@ def who_youve_followed_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.fix_latin1_string(item.get("name", "")),
                 helpers.epoch_to_iso(item.get("timestamp", {}))
             ))
-        out = pd.DataFrame(datapoints, columns=["Name", "Timestamp"])
+
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 1))
+        out = pd.DataFrame(datapoints_sorted, columns=["Name", "Timestamp"])
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -248,7 +250,9 @@ def profile_update_history_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.fix_latin1_string(item.get("title", "")),
                 helpers.epoch_to_iso(item.get("timestamp", ""))
             ))
-        out = pd.DataFrame(datapoints, columns=["Title", "Timestamp"])
+
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 1))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Timestamp"])
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -270,7 +274,9 @@ def your_event_responses_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.fix_latin1_string(item.get("name", "")),
                 helpers.epoch_to_iso(item.get("start_timestamp", ""))
             ))
-        out = pd.DataFrame(datapoints, columns=["Name", "Timestamp"])
+
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 1))
+        out = pd.DataFrame(datapoints_sorted, columns=["Name", "Timestamp"])
 
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -353,8 +359,8 @@ def your_comments_in_groups_to_df(facebook_zip: str) -> pd.DataFrame:
             ))
 
 
-        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 4))
-        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Comment", "Author", "Group", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 3))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Comment", "Group", "Timestamp"])
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
@@ -381,7 +387,9 @@ def your_group_membership_activity_to_df(facebook_zip: str) -> pd.DataFrame:
             ))
 
 
-        out = pd.DataFrame(datapoints, columns=["Title", "Group name", "Timestamp"])
+
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Group name", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -429,7 +437,8 @@ def pages_youve_liked_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(item.get("timestamp", ""))
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Name", "Url", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+        out = pd.DataFrame(datapoints_sorted, columns=["Name", "Url", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -452,7 +461,8 @@ def your_saved_items_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(item.get("timestamp", ""))
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Title", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 1))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -478,7 +488,8 @@ def your_search_history_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Title", "Text", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Text", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -504,7 +515,8 @@ def comments_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Title", "Comment", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+        out = pd.DataFrame(datapoints_sorted, columns=["Title", "Comment", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -545,7 +557,8 @@ def likes_and_reactions_to_df(instagram_zip: str) -> pd.DataFrame:
             logger.error("Exception caught: %s", e)
             return pd.DataFrame()
 
-    out = pd.DataFrame(datapoints, columns=["Title", "Reaction", "Timestamp"])
+    datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+    out = pd.DataFrame(datapoints_sorted, columns=["Title", "Reaction", "Timestamp"])
 
     return out
 
@@ -591,7 +604,8 @@ def your_pages_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(item.get("timestamp", "")),
             ))
 
-        out = pd.DataFrame(datapoints, columns=["Name", "Url", "Timestamp"])
+        datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
+        out = pd.DataFrame(datapoints_sorted, columns=["Name", "Url", "Timestamp"])
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
