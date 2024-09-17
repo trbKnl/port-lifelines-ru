@@ -172,22 +172,11 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
     tables_to_render = []
 
     username = facebook.get_username(facebook_zip)
-    replacement = "<Jouw gebruikersnaam>"
-
-    email_replacement = "<Jouw emailadres>"
-    phone_replacement = "<Jouw telefoonnummer>"
-
     emails = facebook.get_emails(facebook_zip)
     numbers = facebook.get_phone_numbers(facebook_zip)
+    redact = [*username, *emails, *numbers]
 
     df = facebook.who_youve_followed_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "who_youve_followed"
         table_title = props.Translatable({
@@ -201,13 +190,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
-
     df = facebook.your_friends_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
 
     if not df.empty:
         table_id = "your_friends"
@@ -225,12 +208,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.ads_interests_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "ads_interests"
         table_title = props.Translatable(
@@ -243,12 +220,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.recently_visited_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "recently_visited"
         table_title = props.Translatable(
@@ -265,12 +236,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.profile_information_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "profile_information"
         table_title = props.Translatable(
@@ -288,12 +253,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_event_responses_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "your_event_responses"
         table_title = props.Translatable(
@@ -311,12 +270,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.group_posts_and_comments_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "group_posts_and_comments"
         table_title = props.Translatable(
@@ -332,13 +285,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
 
-    df = facebook.your_comments_in_groups_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
+    df = facebook.your_comments_in_groups_to_df(facebook_zip, redact)
     if not df.empty:
         table_id = "your_comments_in_groups"
         table_title = props.Translatable(
@@ -355,12 +302,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.your_group_membership_activity_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "your_group_membership_activity_to_df"
         table_title = props.Translatable(
@@ -377,12 +318,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
 
 
     df = facebook.pages_youve_liked_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "pages_youve_liked"
         table_title = props.Translatable(
@@ -393,13 +328,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df)
         tables_to_render.append(table)
 
-    df = facebook.comments_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
+    df = facebook.comments_to_df(facebook_zip, redact)
     if not df.empty:
         table_id = "comments"
         table_title = props.Translatable(
@@ -414,13 +343,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         table =  props.PropsUIPromptConsentFormTable(table_id, table_title, df, description)
         tables_to_render.append(table)
 
-    df = facebook.likes_and_reactions_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
+    df = facebook.likes_and_reactions_to_df(facebook_zip, redact)
     if not df.empty:
         table_id = "likes_and_reactions"
         table_title = props.Translatable(
@@ -436,12 +359,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
     df = facebook.your_comment_active_days_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "your_comment_active_days"
         table_title = props.Translatable(
@@ -453,12 +370,6 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
     df = facebook.your_pages_to_df(facebook_zip)
-    df = facebook.replace_in_df(df, username, replacement)
-    for n in numbers:
-        df = facebook.replace_in_df(df, n, phone_replacement)
-    for e in emails:
-        df = facebook.replace_in_df(df, e, email_replacement)
-
     if not df.empty:
         table_id = "your_pages"
         table_title = props.Translatable(

@@ -5,7 +5,7 @@ DDP facebook module
 This module contains functions to handle *.jons files contained within a facebook ddp
 """
 from pathlib import Path
-from typing import Any
+from typing import Any, Tuple
 import math
 import logging
 import zipfile
@@ -338,7 +338,7 @@ def your_answers_to_membership_questions_to_df(facebook_zip: str) -> pd.DataFram
 
 
 
-def your_comments_in_groups_to_df(facebook_zip: str) -> pd.DataFrame:
+def your_comments_in_groups_to_df(facebook_zip: str, redact: list[str]) -> pd.DataFrame:
 
     b = unzipddp.extract_file_from_zip(facebook_zip, "your_comments_in_groups.json")
     d = unzipddp.read_json_from_bytes(b)
@@ -358,9 +358,15 @@ def your_comments_in_groups_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.epoch_to_iso(helpers.find_item(denested_dict, "timestamp")),
             ))
 
-
         datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 3))
         out = pd.DataFrame(datapoints_sorted, columns=["Title", "Comment", "Group", "Timestamp"])
+
+        # Redact block
+        recipients = get_recipient_name(out, "Title")
+        remove = [*redact, *recipients]
+        out["Title"] = replace_in_col(out, "Title", remove)
+        out["Comment"] = replace_in_col(out, "Group", remove)
+
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
@@ -497,7 +503,7 @@ def your_search_history_to_df(facebook_zip: str) -> pd.DataFrame:
     return out
 
 
-def comments_to_df(facebook_zip: str) -> pd.DataFrame:
+def comments_to_df(facebook_zip: str, redact: list[str]) -> pd.DataFrame:
     b = unzipddp.extract_file_from_zip(facebook_zip, "comments.json")
     d = unzipddp.read_json_from_bytes(b)
 
@@ -517,6 +523,13 @@ def comments_to_df(facebook_zip: str) -> pd.DataFrame:
 
         datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
         out = pd.DataFrame(datapoints_sorted, columns=["Title", "Comment", "Timestamp"])
+        recipients = get_recipient_name(out, "Title")
+
+        # Redact block
+        recipients = get_recipient_name(out, "Title")
+        remove = [*redact, *recipients]
+        out["Title"] = replace_in_col(out, "Title", remove)
+        out["Comment"] = replace_in_col(out, "Comment", remove)
         
     except Exception as e:
         logger.error("Exception caught: %s", e)
@@ -525,7 +538,7 @@ def comments_to_df(facebook_zip: str) -> pd.DataFrame:
 
 
 
-def likes_and_reactions_to_df(instagram_zip: str) -> pd.DataFrame:
+def likes_and_reactions_to_df(instagram_zip: str, redact: list[str]) -> pd.DataFrame:
     """
     likes_and_reactions_x
     """
@@ -559,6 +572,11 @@ def likes_and_reactions_to_df(instagram_zip: str) -> pd.DataFrame:
 
     datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
     out = pd.DataFrame(datapoints_sorted, columns=["Title", "Reaction", "Timestamp"])
+
+    # Redact block
+    recipients = get_recipient_name(out, "Title")
+    remove = [*redact, *recipients]
+    out["Title"] = replace_in_col(out, "Title", remove)
 
     return out
 
@@ -640,17 +658,17 @@ def groups_to_list(facebook_zip: str) -> list[str]:
 # replace occurance in df
 
 # Function to extract username
-def get_username(facebook_zip: str) -> None | str:
+def get_username(facebook_zip: str) -> list[str] :
     b = unzipddp.extract_file_from_zip(facebook_zip, "profile_information.json")
     d = unzipddp.read_json_from_bytes(b)
 
-    username = None
+    out = []
     try:
-        username = helpers.fix_latin1_string(d["profile_v2"]["name"]["full_name"])  # pyright: ignore
+        out.append(helpers.fix_latin1_string(d["profile_v2"]["name"]["full_name"]))  # pyright: ignore
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
-    return username
+    return out
 
 
 # Function to extract emails
@@ -690,16 +708,43 @@ def regex_substitution(value, pattern, replacement):
     return value
 
 
-def replace_in_df(df: pd.DataFrame, value: str | None, replacement: str) -> pd.DataFrame:
-    """
-    Usage: 
-    username = get_username(/path_to_zip)
-    replace_in_df(df, username, "You")
-    """
-
-    if value != None:
-        pattern = rf"{value}"
-        df = df.applymap(lambda x: regex_substitution(x, pattern, replacement))
+def replace_in_df(df: pd.DataFrame, values:list[str], replacement: str) -> pd.DataFrame:
+    if values != []:
+        for value in values:
+            pattern = rf"{value}"
+            df = df.applymap(lambda x: regex_substitution(x, pattern, replacement))
 
     return df
+
+
+def get_recipient_name(df: pd.DataFrame, column: str) -> list[str]:
+    pattern_list = [
+        re.compile(r'link van (.+?)\.'),
+        re.compile(r'bericht van (.+?)\.'),
+        re.compile(r'post van (.+?)\.'),
+        re.compile(r'foto van (.+?)\.'),
+        re.compile(r'commented on (.+?)\'s photo\.'),
+        re.compile(r'commented on (.+?)\'s post\.'),
+        re.compile(r'commented on (.+?)\'s link\.'),
+        re.compile(r'reacted to (.+?)\'s post\.'),
+        re.compile(r'reacted to (.+?)\'s video\.'),
+        re.compile(r'likes (.+?)\'s post\.'),
+        re.compile(r'likes (.+?)\'s post in'),
+        re.compile(r'liked (.+?)\'s comment\.'),
+    ]
+    
+    all_matches = []
+    for text in df[column]:
+        for pattern in pattern_list:
+            match = re.search(pattern, text)
+            if match:
+                recipient = match.group(1)
+                all_matches.append(recipient)
+    
+    return all_matches
+
+
+def replace_in_col(df: pd.DataFrame, colname: str, redact: list[str]) -> pd.Series:
+    pattern = re.compile(r'|'.join(redact))
+    return df[colname].str.replace(pattern, '<Redacted>', regex=True)
 
