@@ -304,9 +304,12 @@ def group_posts_and_comments_to_df(facebook_zip: str) -> pd.DataFrame:
                 helpers.find_item(denested_dict, "url"),
             ))
 
-
         datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
         out = pd.DataFrame(datapoints_sorted, columns=["Title", "Post", "Date", "Url"])
+
+        # ADD ANONYMYSTEM
+        # TITLE AND POST
+
     except Exception as e:
         logger.error("Exception caught: %s", e)
 
@@ -726,6 +729,7 @@ def get_recipient_name(df: pd.DataFrame, column: str) -> list[str]:
         re.compile(r'bericht van (.+?)\.'),
         re.compile(r'post van (.+?)\.'),
         re.compile(r'foto van (.+?)\.'),
+        re.compile(r'opmerking van (.+?)\.'),
         re.compile(r'commented on (.+?)\'s photo\.'),
         re.compile(r'commented on (.+?)\'s post\.'),
         re.compile(r'commented on (.+?)\'s link\.'),
