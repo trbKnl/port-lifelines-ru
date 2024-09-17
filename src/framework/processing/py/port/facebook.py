@@ -573,10 +573,13 @@ def likes_and_reactions_to_df(instagram_zip: str, redact: list[str]) -> pd.DataF
     datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
     out = pd.DataFrame(datapoints_sorted, columns=["Title", "Reaction", "Timestamp"])
 
-    # Redact block
-    recipients = get_recipient_name(out, "Title")
-    remove = [*redact, *recipients]
-    out["Title"] = replace_in_col(out, "Title", remove)
+    try:
+        # Redact block
+        recipients = get_recipient_name(out, "Title")
+        remove = [*redact, *recipients]
+        out["Title"] = replace_in_col(out, "Title", remove)
+    except Exception as e:
+        return out
 
     return out
 
@@ -745,6 +748,6 @@ def get_recipient_name(df: pd.DataFrame, column: str) -> list[str]:
 
 
 def replace_in_col(df: pd.DataFrame, colname: str, redact: list[str]) -> pd.Series:
-    pattern = re.compile(r'|'.join(redact))
+    escaped_redact = [re.escape(item) for item in redact]
+    pattern = re.compile(r'|'.join(escaped_redact))
     return df[colname].str.replace(pattern, '<Redacted>', regex=True)
-
