@@ -284,7 +284,7 @@ def your_event_responses_to_df(facebook_zip: str) -> pd.DataFrame:
     return out
 
 
-def group_posts_and_comments_to_df(facebook_zip: str) -> pd.DataFrame:
+def group_posts_and_comments_to_df(facebook_zip: str, redact) -> pd.DataFrame:
 
     b = unzipddp.extract_file_from_zip(facebook_zip, "group_posts_and_comments.json")
     d = unzipddp.read_json_from_bytes(b)
@@ -307,8 +307,11 @@ def group_posts_and_comments_to_df(facebook_zip: str) -> pd.DataFrame:
         datapoints_sorted = sorted(datapoints, key= lambda x: helpers.generate_key_for_sorting_from_timestamp_in_tuple(x, 2))
         out = pd.DataFrame(datapoints_sorted, columns=["Title", "Post", "Date", "Url"])
 
-        # ADD ANONYMYSTEM
-        # TITLE AND POST
+        # Redact block
+        recipients = get_recipient_name(out, "Title")
+        remove = [*redact, *recipients]
+        out["Title"] = replace_in_col(out, "Title", remove)
+        out["Post"] = replace_in_col(out, "Post", remove)
 
     except Exception as e:
         logger.error("Exception caught: %s", e)

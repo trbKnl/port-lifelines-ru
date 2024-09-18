@@ -269,7 +269,7 @@ def extract_facebook(facebook_zip: str, _) -> list[props.PropsUIPromptConsentFor
         tables_to_render.append(table)
 
 
-    df = facebook.group_posts_and_comments_to_df(facebook_zip)
+    df = facebook.group_posts_and_comments_to_df(facebook_zip, redact)
     if not df.empty:
         table_id = "group_posts_and_comments"
         table_title = props.Translatable(
