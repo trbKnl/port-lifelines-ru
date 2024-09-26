@@ -70,10 +70,22 @@ def process(session_id):
                 break
 
             # DDP is not recognized: Different status code
-            if validation.status_code.id != 0: 
+            if validation.status_code.id == 1: 
                 LOGGER.info("Not a valid %s zip; No payload; prompt retry_confirmation", platform_name)
                 yield donate_logs(f"{session_id}-tracking")
                 retry_result = yield render_page(platform_name, retry_confirmation(platform_name))
+
+                if retry_result.__type__ == "PayloadTrue":
+                    continue
+                else:
+                    LOGGER.info("Skipped during retry %s", platform_name)
+                    yield donate_logs(f"{session_id}-tracking")
+                    break
+
+            if validation.status_code.id == 2: 
+                LOGGER.info("Not a valid %s zip; No payload; prompt retry_confirmation", platform_name)
+                yield donate_logs(f"{session_id}-tracking")
+                retry_result = yield render_page(platform_name, retry_confirmation_bad_zip(platform_name))
 
                 if retry_result.__type__ == "PayloadTrue":
                     continue
@@ -407,6 +419,18 @@ def retry_confirmation(platform):
         {
             "en": f"Unfortunately, we could not process your {platform} file. If you are sure that you selected the correct file, press Continue. To select a different file, press Try again.",
             "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen."
+        }
+    )
+    ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
+    cancel = props.Translatable({"en": "Continue", "nl": "Verder"})
+    return props.PropsUIPromptConfirm(text, ok, cancel)
+
+
+def retry_confirmation_bad_zip(platform):
+    text = props.Translatable(
+        {
+            "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Het kan zijn dat u het verkeerde bestand heeft geselecteerd, of uw {platform} zip bestand is zo groot dat het bestand niet ingelezen kan worden. Als u denkt dat het bestand heel erg groot is neem dan contact op met de onderzoeker.",
+            "en": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Het kan zijn dat u het verkeerde bestand heeft geselecteerd, of uw {platform} zip bestand is zo groot dat het bestand niet ingelezen kan worden. Als u denkt dat het bestand heel erg groot is neem dan contact op met de onderzoeker.",
         }
     )
     ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
