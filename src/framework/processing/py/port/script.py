@@ -7,6 +7,7 @@ import pandas as pd
 from port.api.commands import (CommandSystemDonate, CommandSystemExit, CommandUIRender)
 import port.api.props as props
 import port.facebook as facebook
+from port.validate import DDPFiletype
 
 
 LOG_STREAM = io.StringIO()
@@ -62,6 +63,17 @@ def process(session_id):
 
             # DDP is recognized: Status code zero
             if validation.status_code.id == 0: 
+                if validation.ddp_category.ddp_filetype == DDPFiletype.HTML:
+                    # participant downloaded wrong format
+                    retry_result = yield render_page(platform_name, retry_confirmation_wrong_format(platform_name))
+
+                    if retry_result.__type__ == "PayloadTrue":
+                        continue
+                    else:
+                        LOGGER.info("Skipped during retry %s", platform_name)
+                        yield donate_logs(f"{session_id}-tracking")
+                        break
+
                 LOGGER.info("Payload for %s", platform_name)
                 yield donate_logs(f"{session_id}-tracking")
 
@@ -431,6 +443,18 @@ def retry_confirmation_bad_zip(platform):
         {
             "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Het kan zijn dat u het verkeerde bestand heeft geselecteerd, of uw {platform} zip bestand is zo groot dat het bestand niet ingelezen kan worden. Als u denkt dat het bestand heel erg groot is neem dan contact op met de onderzoeker.",
             "en": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Het kan zijn dat u het verkeerde bestand heeft geselecteerd, of uw {platform} zip bestand is zo groot dat het bestand niet ingelezen kan worden. Als u denkt dat het bestand heel erg groot is neem dan contact op met de onderzoeker.",
+        }
+    )
+    ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
+    cancel = props.Translatable({"en": "Continue", "nl": "Verder"})
+    return props.PropsUIPromptConfirm(text, ok, cancel)
+
+
+def retry_confirmation_wrong_format(platform):
+    text = props.Translatable(
+        {
+            "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. We denken dat u de Facebook bestanden in html formaat heeft opgevraagd. Bekijk de instructies nog een keer en vraag de Facebook bestanden aan in json formaat. Mocht het niet lukken neem dan contact op met de onderzoeker.",
+            "en": f"Helaas, kunnen we uw {platform} bestand niet verwerken. We denken dat u de Facebook bestanden in html formaat heeft opgevraagd. Bekijk de instructies nog een keer en vraag de Facebook bestanden aan in json formaat. Mocht het niet lukken neem dan contact op met de onderzoeker.",
         }
     )
     ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
